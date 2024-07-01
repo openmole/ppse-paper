@@ -309,7 +309,7 @@ PPSE discovers the diversity of patterns produced by a simulation model and esti
         \For{$i \gets 0, samples$}
             \State $inputs \gets \Call{randomUnitVector}{n}$
             \State $p \gets \Call{Pattern}{inputs}$
-            \If{result contains p}
+            \If{$likelihoods contains p$}
             \State $likelihoods[p] \gets likelihoods[p] + 1$
             \Else 
             \State $likelihoods[p] \gets 1$
@@ -352,21 +352,8 @@ The idea behind the PPSE algorithm is to evolutionally bias the sampling of the 
 }
 
 \section*{Related Work}
-The task of identifying rare patterns is related to active branchs of data mining: rare pattern mining~\cite{borah2019rare} and rare category analysis~\cite{Zhou2023}.
-Nevertheless, in data mining, the data is a prior whereas in simulation models, the patterns have to be discovered by simulation runs.
 
-In order to identify rare patterns, a possible approach is to use effective sampling strategies such as Latin Hypercube Sampling (LHS) or Progressive Latin Hypercube Sampling (PLHS)~\cite{SHEIKHOLESLAMI2017109}, commonly used for sensitivity and uncertainty analysis.
-Nevertheless, such approaches might require many samples before allowing us to evaluate the likelihood of the discovered patterns.
-
-Llorente et al.~\cite{llorente2023marginal} propose an extensive review of marginal likelihood computation methods used in the context of model selection or hypothesis testing.
-The authors note that most of the techniques used to approximate the marginal likelihood are based on the importance sampling (IS) approach~\cite{tokdar2010importance}.
-The idea behind importance sampling is, in the context of monte carlo methods, to take samples from a (simpler and normalised) proposal distribution instead of the target distribution.
-
-\subsection*{PSE}
-
-
-
-\section*{Preliminary Notions}
+\subsection*{Preliminary Notions}
 
 Lets consider a simulation model and a function that computes patterns from the dynamics produced by the model.
 The model has some (free) parameters $\theta$.
@@ -377,7 +364,26 @@ The motivation is to estimate an approximation of $\pi(y)$, the marginal likelih
 \begin{equation}
     Z = \pi(y) = \int_{\theta} \pi(\theta | y) d\theta
 \end{equation}
+where $\pi(\theta | y)$ is the (unnormalized) posterior.
 
+\subsection*{Rare patterns}
+
+The task of identifying rare patterns is related to active branchs of data mining: rare pattern mining~\cite{borah2019rare} and rare category analysis~\cite{Zhou2023}.
+Nevertheless, in data mining, the data is a prior whereas in simulation models, the patterns have to be discovered by simulation runs.
+
+In order to identify rare patterns, a possible approach is to use effective sampling strategies such as Latin Hypercube Sampling (LHS) or Progressive Latin Hypercube Sampling (PLHS)~\cite{SHEIKHOLESLAMI2017109}, commonly used for sensitivity and uncertainty analysis.
+Nevertheless, such approaches might require many samples before allowing us to evaluate the likelihood of the discovered patterns.
+
+\subsection*{Evolutionary Algorithms}
+% \subsection*{PSE}
+Pattern Space Exploration (PSE)~\cite{cherel2015} is an evolutionary method used to discover the unexpected patterns of a model by exploring its parameter space and looking for diversity in the output patterns.
+This approach is usually efficient in identifying rare patterns but does not allow us to compute the marginal likelihood.
+
+\subsection*{Marginal likelihood computation}
+
+Llorente et al.~\cite{llorente2023marginal} propose an extensive review of marginal likelihood computation methods used in the context of model selection or hypothesis testing.
+The authors note that most of the techniques used to approximate the marginal likelihood are based on the importance sampling (IS) approach~\cite{tokdar2010importance}.
+The idea behind importance sampling is, in the context of monte carlo methods, to take samples from a (simpler and normalised) proposal distribution instead of the target distribution.
 % \subsection*{Importance Sampling}
 
 % {\color{red} Julien} 
@@ -385,18 +391,15 @@ The motivation is to estimate an approximation of $\pi(y)$, the marginal likelih
 
 %http://people.esam.northwestern.edu/~kath/448/importance_sampling.pdf
 
-1 / X = likelihood ratio
+% 1 / X = likelihood ratio
 
-\subsection*{Gaussian Mixture Fitting}
+% \subsection*{Gaussian Mixture Fitting}
 
-{\color{red} Julien} 
+% {\color{red} Julien} 
 
-\subsection*{Rejection Sampling}
+% \subsection*{Rejection Sampling}
 
-{\color{red} Julien} 
-
-\subsection*{Evolutionary Algorithms}
-PSE~\cite{cherel2015}.
+% {\color{red} Julien} 
 
 
 \section*{Materials and methods}
@@ -404,18 +407,18 @@ PSE~\cite{cherel2015}.
 \label{sec. algoDescription}
 
 
-Mettre à jour la figure
-merge update hitmap et likelihood map => update state
+% Mettre à jour la figure
+% merge update hitmap et likelihood map => update state
 
-Elitim => keep 1 pattern by niche
+% Elitim => keep 1 pattern by niche
 
-Fit GGMM => faire apparaitre les points gardé et filtrés dans l'output space
+% Fit GGMM => faire apparaitre les points gardé et filtrés dans l'output space
 
-Aprés l'elitism, faire en embranchement si pas assez de point < maxSample aller dans un boit breeding random et reboucler
+% Aprés l'elitism, faire en embranchement si pas assez de point < maxSample aller dans un boit breeding random et reboucler
 
 \begin{figure}
  \centering
-  \includegraphics[width=0.8\linewidth]{images/schemaalgo.pdf}%{profils/zoomed/5.pdf}
+  \includegraphics[width=\linewidth]{images/schemaalgo.pdf}%{profils/zoomed/5.pdf}
  \captionof{figure}{ \label{SchemaAlgo} Graphical Representation of PPSE Algorithm }
 \end{figure}
 
@@ -488,121 +491,50 @@ Note that the computation of the GMM may fail in some degenerated configuration,
     \caption{Global evolution loop of PPSE}
     \label{algo:loop}
     \begin{algorithmic}[1]
+        \State $genomeSize \gets 2$
+        \State $lambda \gets 1000$
+        \State $generations \gets 2000$
+        \State $maxRareSample \gets 10$
+        \State $minClusterSize \gets 3$
+        \State $regularisationEpsilon \gets 10^{-6}$
+
+
+        \Statex
+        \State $gmm \gets \emptyset$
+        \State $likelihoods \gets \Call{emptyMap}$
+        \State $hitMap \gets \Call{emptyMap}$
+        \Statex
+        
+        \For{$generation \gets 0, generations$}
+            \State $(offSpringGenomes, offSpringDensities) \gets \Call{breeding}{gmm}$
+            \State $offspringPatterns \gets \Call{evaluate}{offSpringGenomes}$ \Comment{Compute the pattern for each genome}
+            \State $(elitedGenomes, elitedPatterns) \gets \Call{elitism}{offSpringGenomes, offspringPatterns}$
+            \Statex
+            \For{$(g, p) \gets (elitedGenomes\ zip\ elitedPatterns)$}
+                \If{hitMap contains p}
+                \State $hitMap[p] \gets hitMap[p] + 1$
+                \Else
+                \State $hitMap[p] \gets 1$
+                \EndIf
+                \Statex          
+                \If{likelihoods contains p}
+                \State $likelihoods[p] \gets likelihoods[p] + offSpringDensities[g]$
+                \Else 
+                \State $likelihoods[p] \gets offSpringDensities[g]$
+                \EndIf
+            \EndFor
+            \Statex
+            \State $gmm \gets \Call{computeGMM}{elitedGenomes, elitedPatterns}$
+        \EndFor
+
+        \Statex
+        \State $total \gets$ sum the values stored $likelihoods$
+        \For{$p \gets$ key in $likelihoods$}
+           \State $likelihoods[p] \gets likelihoods / total$
+        \EndFor
+
     \end{algorithmic}
 \end{algorithm}
-
-
-\begin{lstlisting}[caption={Evolution Loop},label={lst:loop}]
-\State
-
-  def evolution(
-    genomeSize: Int,
-    lambda: Int,
-    generations: Int,
-    maxRareSample: Int,
-    minClusterSize: Int,
-    regularisationEpsilon: Double,
-    pattern: Vector[Double] => Vector[Int],
-    genomes: Array[Array[Double]] = Array(),
-    patterns: Array[Array[Int]] = Array(),
-    likelihoodRatioMap: LikelihoodRatioMap = Map(),
-    hitMap: HitMap = Map(),
-    gmm: Option[(GMM, rejection.RejectionSamplerState)] = None,
-    random: Random,
-    generation: Int = 0,
-    trace: StepInfo => Unit = identity): LikelihoodRatioMap =
-
-    trace(StepInfo(generation, likelihoodRatioMap))
-
-    if generation >= generations
-    then computePDF(likelihoodRatioMap)
-    else
-      val offSpringGenomes = breeding(genomeSize, lambda, gmm, random)
-      val offspringPatterns = offSpringGenomes.map((g, _) => pattern(g.toVector).toArray)
-
-      val (elitedGenomes, elitedPattern) =
-        elitism(
-          genomes = genomes,
-          patterns = patterns,
-          offspringGenomes = offSpringGenomes,
-          offspringPatterns = offspringPatterns,
-          random = random)
-
-      val (updatedHitMap, updatedlikelihoodRatioMap, updatedGMM) =
-        updateState(
-          genomes = elitedGenomes,
-          patterns = elitedPattern,
-          offspringGenomes = offSpringGenomes,
-          offspringPatterns = offspringPatterns,
-          likelihoodRatioMap = likelihoodRatioMap,
-          hitMap = hitMap,
-          maxRareSample = maxRareSample,
-          regularisationEpsilon = regularisationEpsilon,
-          iterations = 1000,
-          tolerance = 0.0001,
-          dilation = 1.0,
-          warmupSampler = 10000,
-          minClusterSize = minClusterSize,
-          random = random)
-
-      evolution(
-        genomeSize = genomeSize,
-        lambda = lambda,
-        generations = generations,
-        maxRareSample = maxRareSample,
-        minClusterSize = minClusterSize,
-        regularisationEpsilon = regularisationEpsilon,
-        pattern = pattern,
-        elitedGenomes,
-        elitedPattern,
-        updatedlikelihoodRatioMap,
-        updatedHitMap,
-        updatedGMM,
-        random,
-        generation + 1,
-        trace = trace)
-
-
-
-def evolution(
-  genomes: Array[Array[Double]] = Array(),
-  patterns: Array[Array[Int]] = Array(),
-  likelihoodRatioMap: LikelihoodRatioMap = Map(),
-  hitMap: HitMap = Map(),
-  gmm: Option[(GMM, RejectionSamplerState)] = None,
-  random: Random,
-  generation: Int = 0): LikelihoodRatioMap =
-
-  if generation >= generations
-  then computePDF(likelihoodRatioMap)
-  else
-    val offSpringGenomes = breeding(genomeSize, lambda, gmm, random)
-    val offspringPatterns = offSpringGenomes.map((g, _) => pattern(g.toVector, intervals).toArray)
-
-    val (elitedGenomes, elitedPattern) =
-      elitism(
-        genomes = genomes, 
-        patterns = patterns, 
-        offspringGenomes = offSpringGenomes, 
-        offspringPatterns = offspringPatterns)
-
-    val (updatedHitMap, updatedlikelihoodRatioMap, updatedGMM) =
-      updateState(
-        genomes = elitedGenomes,
-        patterns = elitedPattern,
-        offspringGenomes = offSpringGenomes,
-        offspringPatterns = offspringPatterns,
-        likelihoodRatioMap = likelihoodRatioMap,
-        hitMap = hitMap,
-        fitOnRarest = 100,
-        iterations = 1000,
-        tolerance = 0.01,
-        warmupSampler = 1000,
-        minClusterSize = 10,
-        random = random)
-
-   evolution(elitedGenomes, elitedPattern, updatedlikelihoodRatioMap, updatedHitMap, updatedGMM orElse gmm, random, generation + 1)
-\end{lstlisting}
 
 
 \subsection*{Breeding}
@@ -613,21 +545,20 @@ In the first steps of the algorithm, while no GMM has been evaluated, it samples
 When the algorithm is advanced enough to construct a GMM (see section \refname{sec:updateState}) the breeding function sample in this GMM\@.
 It return the freshly sampled genomes and their respective densities. 
 
-\begin{lstlisting}[caption={Breeding},label={lst:breeding}]
-def breeding(
-  genomeSize: Int,
-  lambda: Int,
-  gmm: Option[(GMM, RejectionSamplerState)],
-  random: Random): Array[(Array[Double], Double)] =
-  gmm match
-    case None =>
-      def randomGenome(size: Int, random: Random) = Array.fill(size)(random.nextDouble())
-      Array.fill(lambda)((randomGenome(genomeSize, random), 1.0))
-    case Some((gmm, rejectionState)) =>
-      val rejectionSampler = buildRejectionSampler(gmm, random)
-      val (_, samples) = sampleArray(rejectionSampler, lambda, rejectionState)
-      samples
-\end{lstlisting}
+\begin{algorithm}
+    \caption{The Breeding function}
+    \label{algo:loop}
+    \begin{algorithmic}[1]
+    \If{$gmm = \emptyset$}
+    \State $genomes \gets$ random genomes
+    \State $densities \gets$ 1.0 for each genome
+    \Else
+    \State $genomes \gets$ sample in gmm rejecting the points outside $[0, 1]^{genomeSize}$
+    \State $densities \gets$ get the density for each genome point in the GMM reweighted by the acceptation ratio of the rejection sampler 
+    \EndIf
+    \State \Return{(genomes,densities)}
+    \end{algorithmic}
+\end{algorithm}
 
 
 \subsection*{Elitism}
