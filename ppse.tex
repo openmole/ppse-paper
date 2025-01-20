@@ -663,9 +663,18 @@ Expliquer mesure d'erreur
 
 The Squares model is a toy model proposed to evaluate our algorithm.
 It consists in defining a set of squares in the 2D unit square.
-Every defined square has a center, a size (width/height) and a grid parameter.
+Every defined square has a centre, a size (width/height) and a grid parameter.
 The grid parameters determines the number of patterns in each direction the square contains.
-For instance, the square model with only $Square(center=(0.5,0.5), size=0.2, grid=2)$ defines 4 patterns in positions $(0.4,0.4)$, $(0.6,0.4)$, $(0.6,0.6)$ and $(0.4,0.6)$.
+For instance, the square model with $Square(center=(0.25,0.5), size=0.2, grid=3)$ and $Square(center=(0.75,0.5), size=0.2, grid=2)$, illustrated in Figure~\ref{square-model} defines 13 patterns, 9 for square $S1$ and 4 in for square $S2$ in positions $(0.65,0.4)$, $(0.6,0.4)$, $(0.6,0.6)$ and $(0.4,0.6)$.
+
+
+\begin{figure}
+ \centering
+  \includegraphics[width=0.7\linewidth ]{images/square.png}
+ \captionof{figure}{ \label{square-model} The Squares toy model }
+\end{figure}
+
+
 
 For our experiment, we use the Square model with the following squares:
 \begin{enumerate}
