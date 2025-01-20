@@ -389,44 +389,63 @@ The intuition of the PPSE method is to use importance sampling together with an 
 
 \subsection*{PPSE loop}
 
-The PPSE algorithm has been developed in the frame of evolutionary algorithms. Intuitively, the algorithm maintains a population of input space values and their corresponding (simulated) output space values. Using the known inputs it computes a proposal distribution and samples new input space values in this proposal distribution from which we can evaluate the proposal probability. 
+The PPSE algorithm has been developed in the frame of evolutionary algorithms. Intuitively, the algorithm maintains a population of input space values and their corresponding (simulated) output space values. 
+Using the known inputs, it computes a proposal distribution and samples new input space values in this proposal distribution from which we can evaluate the proposal probability. 
 
-The proposal distribution it a either an uniform distribution or a GMM. In both case the density of the sampling distribution is known. By using importance sampling, PPSE can then compute the density of the sampled points an therefore the marginal likelihoods of the discovered patterns.
+The proposal distribution is either a uniform distribution or a GMM. 
+In both cases, the density of the sampling distribution is known. 
+By using importance sampling, PPSE can then compute the density of the sampled points and therefore the marginal likelihoods of the discovered patterns.
 
-A schematic representation of PPSE is shown on figure \ref{SchemaAlgo}. Step 1 constitutes the initialisation of the method: points are drawn at random in the input space. On Step 2 the points are evaluated: the model is execution for each point and the matching pattern is computed. On Step 3, the newly computed points are used to update the state of the algorithm. In addition to the population, the state contains two data structures: an hit map counting the number of hits for each pattern, and a sampling weight map containing the data used at the end of PPSE to compute the likelihood of the patterns on the final Step 8. In Step 4, a classical elitism operation is achieved: to limit the size of the population only one individual reaching a given pattern is kept. 
+A schematic representation of PPSE is shown in Figure \ref{SchemaAlgo}. 
+Step 1 constitutes the initialisation of the method: points are drawn at random in the input space. 
+In Step 2, the points are evaluated: the model is executed for each point and the matching pattern is computed.
+In Step 3, the newly computed points are used to update the state of the algorithm. 
+In addition to the population, the state contains two data structures: a hit map, counting the number of hits for each pattern, and a sampling weight map, containing the data used at the end of PPSE to compute the likelihood of the patterns during the final Step 8. 
+In Step 4, a classical elitism operation is achieved: to limit the size of the population, only one individual reaching a given pattern is kept. 
 
-After Step 4, PPSE make an exploration/exploitation tradeoff. It switches dynamically between using pure random sampling during the exploration phases and a GMM based sampling exploitation during the exploitation phases. This decision is based on the number of patterns with a low number of hits in present the hitmap. The intuition behind this tradeoff is: when PPSE is discovering new patterns it uses biased distributions to speedup the exploration of the zones generating the new patterns, and when it is not it used pure random sampling seeking new pattern-rich zones.  
+After Step 4, PPSE makes an exploration/exploitation tradeoff. 
+It switches dynamically between using pure random sampling during the exploration phases and a GMM based sampling exploitation during the exploitation phases. 
+This decision is based on the number of patterns with a low number of hits present in the hitmap. 
+The intuition behind this tradeoff is that when PPSE is discovering new patterns it uses biased distributions to speedup the exploration of the zones generating the new patterns, and, when it is not, it uses pure random sampling seeking new pattern-rich zones.  
 
-In the exploration phases (Step 6'), PPSE samples randomly in the input space. In the exploitation phases it first fits a GMM in the input space that fits the points reaching patterns with a low number of hits (Step 5). Then it samples in this GMM (Step 6). In both these cases the likelihood ratio ($\frac{1}{density on the point}$) of the sample points is computed along with the point. The likelihood ratio values are used on Step 3 in order to update the state. 
+In the exploration phases (Step 6'), PPSE samples randomly in the input space. 
+In the exploitation phases it first fits a GMM in the input space that fits the points reaching patterns with a low number of hits (Step 5). 
+Then it samples in this GMM (Step 6). 
+In both these cases, the likelihood ratio ($\frac{1}{density on the point}$) of the sample points is computed along with the point. 
+The likelihood ratio values are used in Step 3 in order to update the state. 
 
 \begin{figure}
  \centering
   \includegraphics[width=\linewidth]{images/schemaalgo.pdf}%{profils/zoomed/5.pdf}
- \captionof{figure}{ \label{SchemaAlgo} Graphical Representation of PPSE Algorithm }
+ \captionof{figure}{ \label{SchemaAlgo} Graphical Representation of the PPSE Algorithm }
 \end{figure}
 
 
 \subsection*{Evolution Loop}
 
-The evolution loop, show in algorithm \ref{algo:loop} is the engine of the PPSE algorithm. It compute the successive states of the algorithm until a given number of generation has been exhausted.
+The evolution loop, shown in Algorithm \ref{algo:loop} is the engine of the PPSE algorithm.
+It computes the successive states of the algorithm until a given number of generations has been exhausted.
 
-The algorithm \ref{algo:loop} first exposes the main parameters of PPSE:
+Algorithm \ref{algo:loop} first exposes the main parameters of PPSE:
 \begin{itemize}
-    \item genomeSize: the size of the input space,
-    \item lambda: the number of point sampled for each generation,
-    \item generation: the number of iterations of the algorithm
-    \item maxRareSample: the number of samples under which a pattern is considered as an under-evaluated pattern, i.e. a rare pattern being evaluated.
+    \item $genomeSize$: the size of the input space,
+    \item $\lambda$: the number of point sampled for each generation,
+    \item $generation$: the number of iterations of the algorithm,
+    \item $maxRareSample$: the number of samples under which a pattern is considered as an under-evaluated pattern, i.e. a rare pattern being evaluated.
 \end{itemize}
 
 The state of PPSE contains:
 \begin{itemize}
-    \item gmm: the gmm to sample new input points, initialised as empty,
-    \item likehoods: a map containing the likelihoods ratio of the patterns, initialised as empty,
-    \item hitMap: a map containing the number of hits for each pattern, initialised a empty,
-    \item patterns: the discovered patterns, initialised as empty.
+    \item $gmm$: the gmm to sample new input points, initialised as empty,
+    \item $\mathcal{L}$: a map containing the likelihoods ratio of the patterns, initialised as empty,
+    \item $hitMap$: a map containing the number of hits for each pattern, initialised a empty,
+    \item $patterns$: the discovered patterns, initialised as empty.
 \end{itemize}
 
-At each generation the evolution loop of PPSE, the algorithm first calls the Breeding function to compute the offspring genome and there matching densities $osGenome$ and $osDensities$. Then it executes the model in order to compute the pattern reached by each of these points and store it in $osPatterns$. It updates the $hitMap$ and the $likelihoods$. Then it reduce the population size by calling the elitism function and finally it compute the new value for $gmm$. When the number of generation is exhausted it normalizes the $likelihoods$ of the patterns.
+At each generation, the evolution loop of PPSE, the algorithm first calls the Breeding function to compute the offspring genome and there matching densities $osGenome$ and $osDensities$. 
+Then it executes the model in order to compute the pattern reached by each of these points and stores them in $osPatterns$. 
+It updates the $hitMap$ and the $likelihoods$ ($\mathcal{L}$). Then it reduce the population size by calling the elitism function and finally it compute the new value for $gmm$. 
+When the number of generation is exhausted it normalizes the $likelihoods$ ($\mathcal{L}$) of the patterns.
 
 
 % The $evolution$ function takes the entire state of the algorithm as parameters.
@@ -481,9 +500,9 @@ At each generation the evolution loop of PPSE, the algorithm first calls the Bre
         \EndFor
 
         \Statex
-        \State $total \gets$ sum the values stored $likelihoods$
+        \State $total \gets \sum_{p \gets key\ in\ likelihoods} likelihoods[p]$ %sum the values stored $likelihoods$
         \For{$p \gets$ key in $likelihoods$}
-           \State $likelihoods[p] \gets likelihoods / total$
+           \State $likelihoods[p] \gets \frac{likelihoods[p]}{total}$
         \EndFor
 
     \end{algorithmic}
@@ -494,7 +513,13 @@ At each generation the evolution loop of PPSE, the algorithm first calls the Bre
 
 \subsection*{Breeding}
 
-The breeding function, exposed in algorithm \ref{algo:breeding}, produces new points in the input space. As a result to the GMM computation part, shown in \ref{algo:computeGMM}, the new points are either sample using a GMM or sampled at random in the input space. For each sampled point, the sampling weight is computed. When the point is drawn at random, the sampling weight is equal to 1. When the point is drawn in the GMM the weight is computing given the density. Because the GMM may sample points outside of the input space, the algorithm use a rejection sampler. The density is therefore weighted by the acceptation ratio of the rejection sampler.
+The breeding function, exposed in Algorithm \ref{algo:breeding}, produces new points in the input space. 
+As a result to the GMM computation part, shown in Algorithm \ref{algo:computeGMM}, the new points are either sampled using a GMM or sampled at random in the input space. 
+For each sampled point, the sampling weight is computed. 
+When the point is drawn at random, the sampling weight is equal to 1. 
+When the point is drawn in the GMM, the weight is computed given the density. 
+Because the GMM may sample points outside of the input space, the algorithm uses a rejection sampler. 
+The density is therefore weighted by the acceptation ratio of the rejection sampler.
 
 \begin{algorithm}
     \caption{The Breeding Function}
@@ -516,8 +541,10 @@ The breeding function, exposed in algorithm \ref{algo:breeding}, produces new po
 
 \subsection*{Elitism}
 
-In genetic algorithms the elitism function generally shrinks the population by discarding the individual with the lowest fitness.
-In PPSE, only one individual by pattern is kept. The elitism function of PPSE, exposed in algorithm \ref{algo:elitism}. The elitism function filters out individual producing then same pattern. When several individual produce an identical pattern, one is kept at random.
+In genetic algorithms, the elitism function generally shrinks the population by discarding the individual with the lowest fitness.
+In PPSE, only one individual by pattern is kept. 
+The elitism function of PPSE is exposed in Algorithm \ref{algo:elitism}. 
+The elitism function filters out individuals producing then same pattern: when several individuals produce an identical pattern, one is kept at random.
 
 \begin{algorithm}
     \caption{The Elitism Function}
@@ -543,11 +570,13 @@ In PPSE, only one individual by pattern is kept. The elitism function of PPSE, e
 
 \subsection{Update the State}
 
-In the algorithm loop, once the breeding and the elitism function have been computed, the hit map and the likelihoods are updated by the so called \textit{updateState} function show on \ref{algo:loop}. 
+In the algorithm loop, once the breeding and the elitism functions have been computed, the hit map and the likelihoods are updated by the so called \textit{updateState} function shown in Algorithm \ref{algo:loop}. 
 
-This function first computes the new hit map. It simply increments the current number of hit by 1, for each pattern produced by the offspring population.
+This function first computes the new hit map. 
+It simply increments the current number of hit by 1, for each pattern produced by the offspring population.
 
-The update State function then update the new likelihoods map. For each a pattern, the inverse of the density of the input points reaching a pattern are summed and added to the existing values in the likelihoods map.
+The update State function then updates the new likelihoods map. 
+For each a pattern, the inverse of the density of the input points reaching a pattern are summed and added to the existing values in the likelihoods map.
 
 \begin{algorithm}
     \caption{Update the State of PPSE}
@@ -575,13 +604,17 @@ The update State function then update the new likelihoods map. For each a patter
 
 \subsection*{Computing the GMM}\label{sec:computeGMM}
 
-The last part of the loop, shown in \ref{algo:computeGMM}, computes an new value for the GMM. This part make the algorithm switch between 2 stages. If it return an empty value, the algorithm search at random, if it return a GMM the algorithm samples in the GMM.
+The last part of the loop, shown in Algorithm \ref{algo:computeGMM}, computes an new value for the GMM. 
+This part makes the algorithm switch between 2 stages. 
+If it returns an empty value, the algorithm searches at random, if it returns a GMM the algorithm samples in the GMM.
 
-The \textit{computeGMM} function first selects, in the population, the genomes that reach patterns that have been hit less than \textit{maxRareSample} times. If the set of genomes is too small the function returns empty.
+The \textit{computeGMM} function first selects, in the population, the genomes that reach patterns that have been hit less than \textit{maxRareSample} times. 
+If the set of genomes is too small, the function returns empty.
 
-If the set of rare genomes is big enough, the algorithm estimate a GMM that would be able generate this set points using the expectation maximisation (EM) algorithm \cite{dempster1977em}. 
+If the set of rare genomes is big enough, the algorithm estimates a GMM that would be able generate this set points using the expectation maximisation (EM) algorithm \cite{dempster1977em}. 
 
-Before calling the EM algorithm the number of component is determined using the $HDBSCAN$ clustering algorithm \cite{mcinnes2017hdbscan}. The result of the clustering is used to bootstrap the EM fitting algorithm.
+Before calling the EM algorithm, the number of components is determined using the $HDBSCAN$ clustering algorithm \cite{mcinnes2017hdbscan}. 
+The result of the clustering is used to bootstrap the EM fitting algorithm.
 
 
 \begin{algorithm}
